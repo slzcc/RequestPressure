@@ -2,11 +2,11 @@
 
 通过 Go 编写的 HTTP 的压力请求 Tools。
 参数说明:
-```-c  client         用户数量
-   -t  request number 用户请求的次数
-   -u  request url    请求的 URLs
-   -o  request status 请求 HTTP 状态码
-   -oo request body   请求的响应体（o 与 oo 参数互斥只能用其中一个）
+```-c  client         default: empty  必须  用户数量
+   -t  request number default: empty  必须  用户请求的次数
+   -u  request url    default: empty  必须  请求的 URLs
+   -o  request status default: false  可选  请求 HTTP 状态码
+   -oo request body   default: false  可选  请求的响应体（o 与 oo 参数互斥只能用其中一个）
 ```
 
 ## 使用
