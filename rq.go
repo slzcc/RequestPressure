@@ -2,11 +2,14 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"sync"
 	"time"
+	"net/url"
 )
 
 var (
@@ -18,6 +21,7 @@ var (
 )
 
 var (
+	urls      = string("https://kaipan.tahoecn.com/opening/app/house/getCanOrder")
 	total    = 0.0
 	about    = 0.0
 	success  = 0.0
@@ -27,8 +31,8 @@ var (
 
 var wg sync.WaitGroup
 
-func run(num int) {
 
+func run(num int, data, response string) {
 	defer wg.Done()
 
 	no := 0.0
@@ -38,7 +42,9 @@ func run(num int) {
 
 		sub_request_start_time := time.Now().UnixNano()
 
-		resp, err := http.Get(*u)
+		urlStr := urls + "?AES_DATA=" + url.QueryEscape(data)
+
+		resp, err := http.Post(urlStr, "application/json", nil)
 
 		sub_request_end_time := time.Now().UnixNano()
 
@@ -49,37 +55,21 @@ func run(num int) {
 
 		defer resp.Body.Close()
 
-		buf := bytes.NewBuffer(make([]byte, 0, 512))
+		body, err := ioutil.ReadAll(resp.Body)
 
-		if *o || *oo != true {
-
-			fmt.Printf("\nRequest StatusCode: %v %v, UseTime: %v %v, Request Success: %v, Request Failure: %v\n\n", resp.Status, resp.StatusCode, fmt.Sprintf("%.4f", float64(sub_request_end_time-sub_request_start_time)/1e9), "s", success, failure)
-
+		if err != nil {
+			body = nil
+			continue
 		}
 
-		if *oo || *o != true {
+		if *o {
 
-			//headers := resp.Header
+			fmt.Printf("Request StatusCode: %v %v, UseTime: %v %v, Request Success: %v, Request Failure: %v\n\n", resp.Status, resp.StatusCode, fmt.Sprintf("%.4f", float64(sub_request_end_time-sub_request_start_time)/1e9), "s", success, failure)
 
-			//for k, v := range headers {
-			//	fmt.Printf("k=%v, v=%v\n", k, v)
-			//}
+		}else if *oo {
 
-			//fmt.Printf("resp status %s,statusCode %d\n", resp.Status, resp.StatusCode)
-			//
-			//fmt.Printf("resp Proto %s\n", resp.Proto)
-			//
-			//fmt.Printf("resp content length %d\n", resp.ContentLength)
-			//
-			//fmt.Printf("resp transfer encoding %v\n", resp.TransferEncoding)
-			//
-			//fmt.Printf("resp Uncompressed %t\n", resp.Uncompressed)
+			fmt.Printf("Response Body: %v\n,Request StatusCode: %v %v, UseTime: %v %v, Request Success: %v, Request Failure: %v, Request Body Content: %v\n\n", response, resp.Status, resp.StatusCode, fmt.Sprintf("%.4f", float64(sub_request_end_time-sub_request_start_time)/1e9), "s", success, failure, string(body))
 
-			//fmt.Println(reflect.TypeOf(resp.Body))
-
-			length, _ := buf.ReadFrom(resp.Body)
-
-			fmt.Printf("\nRequest StatusCode: %v %v\nRequest Body Bytes Size: %v\nRequest Body Size: %v\nRequest UseTime: %v\nRequest Body Content: %v\n%v", resp.Status, resp.StatusCode, len(buf.Bytes()), length, fmt.Sprintf("%.4f", float64(sub_request_end_time-sub_request_start_time)/1e9), string(buf.Bytes()), "\n")
 		}
 
 		if resp.StatusCode != 200 {
@@ -112,7 +102,39 @@ func main() {
 
 	for i := 0; i < *c; i++ {
 		wg.Add(1)
-		go run(*t)
+
+		resp, err := http.Get(*u)
+
+		if err != nil {
+
+			continue
+		}
+
+		defer resp.Body.Close()
+
+		buf := bytes.NewBuffer(make([]byte, 0, 512))
+		length, _ := buf.ReadFrom(resp.Body)
+
+		//body, _ := ioutil.ReadAll(resp.Body)
+		//fmt.Println(string(body))
+
+		if length == 0 {
+			fmt.Println(length)
+		}
+		var f interface{}
+		json.Unmarshal(buf.Bytes(), &f)
+
+		for key, value := range f.(map[string]interface{}) {
+			switch key {
+				case "data":
+					jsonStr, err := json.Marshal(value)
+					if err != nil {
+						fmt.Println("error:", err)
+					}
+					go run(*t, string(jsonStr), string(buf.Bytes()))
+			}
+		}
+
 	}
 
 	wg.Wait()
