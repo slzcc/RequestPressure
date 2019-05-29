@@ -3,3 +3,6 @@ tags
 rq
 rq_darwin_amd64
 rq_linux_amd64
+
+rpp_.*
+rp_.*
