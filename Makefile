@@ -1,5 +1,5 @@
 SHELL := /bin/bash
-NAME := "rq"
+NAME := "rp"
 VERSION := "latest"
 
 build:
